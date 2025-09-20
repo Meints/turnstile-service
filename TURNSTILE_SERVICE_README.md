@@ -29,7 +29,7 @@ Processa o scan do QR Code na catraca.
 ```json
 {
   "jwtToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-  "gateId": "GATE-001",
+  "gate": "GATE-001",
   "deviceId": "DEVICE-123",
   "location": "Entrada Principal"
 }
@@ -43,7 +43,7 @@ Processa o scan do QR Code na catraca.
   "accessType": "granted",
   "accessMethod": "qr_manager",
   "timestamp": "2025-09-17T21:30:00.000Z",
-  "gateId": "GATE-001",
+  "gate": "GATE-001",
   "userId": "user123",
   "synced": true,
   "jwtPayload": { ... }
@@ -54,7 +54,7 @@ Processa o scan do QR Code na catraca.
 Obtém histórico de acessos.
 
 **Query Parameters:**
-- `gateId` (opcional): Filtrar por portão
+- `gate` (opcional): Filtrar por portão
 - `limit` (opcional): Limite de registros (padrão: 50)
 
 ### POST `/turnstile/sync`
@@ -77,7 +77,7 @@ Histórico completo de acessos processados.
 ```typescript
 {
   jti: string;           // JWT ID
-  gateId: string;        // ID do portão
+  gate: string;        // ID do portão
   userId: string;        // ID do usuário
   accessType: 'granted' | 'denied';
   accessMethod: 'qr_manager' | 'jwt_fallback';
@@ -96,7 +96,7 @@ Registros pendentes de sincronização.
 ```typescript
 {
   jti: string;
-  gateId: string;
+  gate: string;
   userId: string;
   accessType: 'granted' | 'denied';
   timestamp: Date;
@@ -114,7 +114,7 @@ Configuração das catracas.
 
 ```typescript
 {
-  gateId: string;        // ID único do portão
+  gate: string;        // ID único do portão
   name: string;          // Nome do portão
   location: string;      // Localização
   isActive: boolean;     // Se está ativo
@@ -241,7 +241,7 @@ curl -X POST http://localhost:3031/turnstile/scan \
   -H "Content-Type: application/json" \
   -d '{
     "jwtToken": "seu_jwt_token_aqui",
-    "gateId": "GATE-001"
+    "gate": "GATE-001"
   }'
 ```
 
@@ -252,7 +252,7 @@ curl -X POST http://localhost:3031/turnstile/sync
 
 ### Teste de Histórico
 ```bash
-curl http://localhost:3031/turnstile/history?gateId=GATE-001&limit=10
+curl http://localhost:3031/turnstile/history?gate=GATE-001&limit=10
 ```
 
 ## 🔧 Manutenção

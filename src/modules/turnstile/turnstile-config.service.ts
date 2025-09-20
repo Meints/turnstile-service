@@ -21,21 +21,21 @@ export class TurnstileConfigService {
   async createOrUpdateConfig(
     configData: Partial<TurnstileConfig>,
   ): Promise<TurnstileConfig> {
-    const { gateId } = configData;
+    const { gate } = configData;
 
-    const existingConfig = await this.turnstileConfigModel.findOne({ gateId });
+    const existingConfig = await this.turnstileConfigModel.findOne({ gate });
 
     if (existingConfig) {
       // Atualizar configuração existente
       Object.assign(existingConfig, configData);
       await existingConfig.save();
-      this.logger.log(`Configuração atualizada para portão ${gateId}`);
+      this.logger.log(`Configuração atualizada para portão ${gate}`);
       return existingConfig;
     } else {
       // Criar nova configuração
       const newConfig = new this.turnstileConfigModel(configData);
       await newConfig.save();
-      this.logger.log(`Nova configuração criada para portão ${gateId}`);
+      this.logger.log(`Nova configuração criada para portão ${gate}`);
       return newConfig;
     }
   }
@@ -43,70 +43,50 @@ export class TurnstileConfigService {
   /**
    * Obtém configuração por ID do portão
    */
-  async getConfigByGateId(gateId: string): Promise<TurnstileConfig | null> {
-    return await this.turnstileConfigModel.findOne({ gateId });
+  async getConfigBygate(gate: string): Promise<TurnstileConfig | null> {
+    return await this.turnstileConfigModel.findOne({ gate });
   }
 
   /**
    * Lista todas as configurações
    */
   async getAllConfigs(): Promise<TurnstileConfig[]> {
-    return await this.turnstileConfigModel.find().sort({ gateId: 1 });
+    return await this.turnstileConfigModel.find().sort({ gate: 1 });
   }
 
   /**
    * Ativa/desativa catraca
    */
   async toggleActive(
-    gateId: string,
+    gate: string,
     isActive: boolean,
   ): Promise<TurnstileConfig | null> {
     const config = await this.turnstileConfigModel.findOneAndUpdate(
-      { gateId },
+      { gate },
       { isActive },
       { new: true },
     );
 
     if (config) {
       this.logger.log(
-        `Portão ${gateId} ${isActive ? 'ativado' : 'desativado'}`,
+        `Portão ${gate} ${isActive ? 'ativado' : 'desativado'}`,
       );
     }
 
     return config;
   }
 
-  /**
-   * Ativa/desativa modo de manutenção
-   */
-  async toggleMaintenanceMode(
-    gateId: string,
-    maintenanceMode: boolean,
-  ): Promise<TurnstileConfig | null> {
-    const config = await this.turnstileConfigModel.findOneAndUpdate(
-      { gateId },
-      { maintenanceMode },
-      { new: true },
-    );
 
-    if (config) {
-      this.logger.log(
-        `Modo de manutenção ${maintenanceMode ? 'ativado' : 'desativado'} para portão ${gateId}`,
-      );
-    }
-
-    return config;
-  }
 
   /**
    * Atualiza estatísticas
    */
   async updateStats(
-    gateId: string,
+    gate: string,
     stats: { totalAccesses?: number; failedSyncs?: number },
   ): Promise<void> {
     await this.turnstileConfigModel.updateOne(
-      { gateId },
+      { gate },
       {
         $inc: stats,
         lastSyncAt: new Date(),
@@ -117,9 +97,9 @@ export class TurnstileConfigService {
   /**
    * Remove configuração
    */
-  async deleteConfig(gateId: string): Promise<boolean> {
-    const result = await this.turnstileConfigModel.deleteOne({ gateId });
-    this.logger.log(`Configuração removida para portão ${gateId}`);
+  async deleteConfig(gate: string): Promise<boolean> {
+    const result = await this.turnstileConfigModel.deleteOne({ gate });
+    this.logger.log(`Configuração removida para portão ${gate}`);
     return result.deletedCount > 0;
   }
 }

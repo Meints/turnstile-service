@@ -8,13 +8,11 @@ export class ScanQrcodeDto {
 
   @IsString()
   @IsNotEmpty()
-  gateId: string;
+  gate: string;
 
   @IsOptional()
   @IsString()
   deviceId?: string; // ID do dispositivo que fez o scan
 
-  @IsOptional()
-  @IsString()
-  location?: string; // Localização adicional
+
 }

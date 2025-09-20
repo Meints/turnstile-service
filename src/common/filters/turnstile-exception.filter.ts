@@ -28,14 +28,26 @@ export class TurnstileExceptionFilter implements ExceptionFilter {
       // Mapear erros específicos para códigos HTTP
       if (
         message.includes('Token JWT inválido') ||
-        message.includes('Token expirado')
+        message.includes('QR Code expirado') ||
+        message.includes('QR Code ainda não válido') ||
+        message.includes('fora da janela de tempo')
       ) {
         status = HttpStatus.BAD_REQUEST;
       } else if (
+        message.includes('já foi usado o máximo de vezes') ||
+        message.includes('already used maximum times')
+      ) {
+        status = HttpStatus.CONFLICT;
+      } else if (
         message.includes('não autorizado') ||
-        message.includes('não permitido')
+        message.includes('não permitido') ||
+        message.includes('QR Code não autorizado')
       ) {
         status = HttpStatus.FORBIDDEN;
+      } else if (
+        message.includes('foi revogado')
+      ) {
+        status = HttpStatus.GONE;
       } else if (
         message.includes('não está ativa') ||
         message.includes('manutenção')
@@ -48,13 +60,13 @@ export class TurnstileExceptionFilter implements ExceptionFilter {
 
     response.status(status).json({
       success: false,
+      message,
       error: {
         type:
           exception instanceof Error
             ? exception.constructor.name
             : 'UnknownError',
-        message,
-        timestamp: new Date().toISOString(),
+        timestamp: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString(),
       },
     });
   }

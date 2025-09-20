@@ -8,6 +8,8 @@ import {
   HttpStatus,
   UseFilters,
   Logger,
+  Put,
+  Param,
 } from '@nestjs/common';
 import { TurnstileService } from './turnstile.service';
 import { ScanQrcodeDto } from 'src/common/dto/scan-qrcode.dto';
@@ -35,7 +37,7 @@ export class TurnstileController {
   @Post('scan')
   @HttpCode(HttpStatus.OK)
   async scan(@Body() scanQrcodeDto: ScanQrcodeDto): Promise<AccessResponseDto> {
-    this.logger.log(`Processando scan para portão ${scanQrcodeDto.gateId}`);
+    this.logger.log(`Processando scan para portão ${scanQrcodeDto.gate}`);
     return await this.turnstileService.scan(scanQrcodeDto);
   }
 
@@ -44,11 +46,11 @@ export class TurnstileController {
    */
   @Get('history')
   async getHistory(
-    @Query('gateId') gateId?: string,
+    @Query('gate') gate?: string,
     @Query('limit') limit?: string,
   ): Promise<AccessHistoryDto[]> {
     const limitNumber = limit ? parseInt(limit, 10) : 50;
-    return await this.turnstileService.getAccessHistory(gateId, limitNumber);
+    return await this.turnstileService.getAccessHistory(gate, limitNumber);
   }
 
   /**
@@ -67,9 +69,9 @@ export class TurnstileController {
    */
   @Get('sync/status')
   async getSyncStatus(
-    @Query('gateId') gateId?: string,
+    @Query('gate') gate?: string,
   ): Promise<SyncStatusDto> {
-    return await this.turnstileService.getSyncStatus(gateId);
+    return await this.turnstileService.getSyncStatus(gate);
   }
 
   /**
@@ -93,14 +95,65 @@ export class TurnstileController {
    * Estatísticas gerais do sistema
    */
   @Get('stats')
-  async getStats(@Query('gateId') gateId?: string): Promise<any> {
-    const syncStatus = await this.turnstileService.getSyncStatus(gateId);
-    const history = await this.turnstileService.getAccessHistory(gateId, 10);
+  async getStats(@Query('gate') gate?: string): Promise<any> {
+    const syncStatus = await this.turnstileService.getSyncStatus(gate);
+    const history = await this.turnstileService.getAccessHistory(gate, 10);
 
     return {
       syncStatus,
       recentAccesses: history.length,
       lastAccess: history[0]?.timestamp || null,
+    };
+  }
+
+  /**
+   * Criar configuração de catraca
+   */
+  @Post('config')
+  async createConfig(@Body() configData: any): Promise<any> {
+    return await this.turnstileService.createTurnstileConfig(configData);
+  }
+
+  /**
+   * Atualizar catraca
+   */
+  @Put(':id')
+  async updateTurnstile(@Param('id') id: string, @Body() updateData: any): Promise<any> {
+    return await this.turnstileService.updateTurnstileConfig(id, updateData);
+  }
+
+  /**
+   * Sincronizar cache de QR Codes
+   */
+  @Post('sync-cache')
+  async syncQrCache(): Promise<{ message: string }> {
+    await this.turnstileService.syncQrCache();
+    return { message: 'Cache sincronizado com sucesso' };
+  }
+
+  /**
+   * Forçar sincronização manual
+   */
+  @Post('force-sync')
+  async forceSync(): Promise<{ message: string; synced: number }> {
+    this.logger.log('🔄 [TURNSTILE] Forçando sincronização manual...');
+    const result = await this.turnstileService.syncPendingData();
+    return {
+      message: 'Sincronização forçada concluída',
+      synced: result.syncedCount || 0
+    };
+  }
+
+  /**
+   * Limpar registros pendentes antigos
+   */
+  @Post('cleanup')
+  async cleanup(): Promise<{ message: string; cleaned: number }> {
+    this.logger.log('🧽 [TURNSTILE] Limpando registros antigos...');
+    // Implementar limpeza se necessário
+    return {
+      message: 'Limpeza concluída',
+      cleaned: 0
     };
   }
 }

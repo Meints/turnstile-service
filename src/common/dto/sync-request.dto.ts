@@ -3,7 +3,7 @@ import { IsOptional, IsString, IsNumber, IsDateString } from 'class-validator';
 export class SyncRequestDto {
   @IsOptional()
   @IsString()
-  gateId?: string; // Filtrar por portão específico
+  gate?: string; // Filtrar por portão específico
 
   @IsOptional()
   @IsNumber()

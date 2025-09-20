@@ -3,6 +3,7 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { TurnstileModule } from './modules/turnstile/turnstile.module';
+import { HealthController } from './health/health.controller';
 import { env } from './config/env';
 
 @Module({
@@ -12,7 +13,7 @@ import { env } from './config/env';
     ),
     TurnstileModule,
   ],
-  controllers: [AppController],
+  controllers: [AppController, HealthController],
   providers: [AppService],
 })
 export class AppModule {}

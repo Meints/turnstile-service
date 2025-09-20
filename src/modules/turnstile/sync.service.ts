@@ -32,7 +32,7 @@ export class SyncService {
    */
   async syncPendingData(syncRequest: SyncRequestDto): Promise<SyncResponseDto> {
     const {
-      gateId,
+      gate,
       limit = 100,
       fromDate,
       toDate,
@@ -42,7 +42,7 @@ export class SyncService {
     try {
       // Buscar registros pendentes
       const query: any = { status };
-      if (gateId) query.gateId = gateId;
+      if (gate) query.gate = gate;
       if (fromDate) query.timestamp = { $gte: new Date(fromDate) };
       if (toDate) {
         query.timestamp = { ...query.timestamp, $lte: new Date(toDate) };
@@ -73,7 +73,7 @@ export class SyncService {
           // Marcar como processando
           await this.pendingSyncModel.updateOne(
             { _id: record._id },
-            { status: 'processing', lastRetryAt: new Date() },
+            { status: 'processing', lastRetryAt: new Date(Date.now() - 3 * 60 * 60 * 1000) },
           );
 
           // Enviar para QR Manager
@@ -83,47 +83,64 @@ export class SyncService {
             // Criar log de acesso
             await this.createAccessLog(record, response.data);
 
-            // Marcar como sincronizado
-            await this.pendingSyncModel.updateOne(
-              { _id: record._id },
-              {
-                status: 'completed',
-                syncTimestamp: new Date(),
-                errorMessage: null,
-              },
-            );
+            // REMOVER do pendingsyncs (sucesso)
+            await this.pendingSyncModel.deleteOne({ _id: record._id });
 
             syncedCount++;
-            this.logger.log(`Registro ${record.jti} sincronizado com sucesso`);
+            this.logger.log(`✅ [SYNC] Registro ${record.jti} sincronizado e removido`);
           } else {
             throw new Error(
               response.message || 'Erro na resposta do QR Manager',
             );
           }
         } catch (error) {
-          failedCount++;
           const errorMessage = String(error);
-          errors.push(`Registro ${record.jti}: ${errorMessage}`);
+          const isHttpError = error.response?.status;
+          
+          // Verificar se é erro definitivo (não precisa tentar novamente)
+          const definitiveErrors = [
+            409, // QR esgotou usos
+            410, // QR foi revogado
+            404, // QR não encontrado
+            400  // QR inválido
+          ];
+          
+          if (isHttpError && definitiveErrors.includes(error.response.status)) {
+            // REMOVER do pendingsyncs (erro definitivo)
+            await this.pendingSyncModel.deleteOne({ _id: record._id });
+            
+            // Criar log de acesso negado
+            await this.createAccessLog(record, null, error.response.data?.message || errorMessage);
+            
+            syncedCount++; // Contar como "processado"
+            this.logger.log(`🗑️ [SYNC] Registro ${record.jti} removido (erro definitivo: ${error.response.status})`);
+          } else {
+            // Erro temporário - manter para retry
+            failedCount++;
+            errors.push(`Registro ${record.jti}: ${errorMessage}`);
 
-          // Atualizar contador de tentativas
-          const retryCount = record.retryCount + 1;
-          const status =
-            retryCount >= env.MAX_RETRY_ATTEMPTS ? 'failed' : 'pending';
+            const retryCount = record.retryCount + 1;
+            const status = retryCount >= env.MAX_RETRY_ATTEMPTS ? 'failed' : 'pending';
 
-          await this.pendingSyncModel.updateOne(
-            { _id: record._id },
-            {
-              retryCount,
-              status,
-              lastRetryAt: new Date(),
-              errorMessage,
-            },
-          );
+            if (status === 'failed') {
+              // REMOVER se excedeu tentativas
+              await this.pendingSyncModel.deleteOne({ _id: record._id });
+              this.logger.log(`🗑️ [SYNC] Registro ${record.jti} removido (excedeu tentativas)`);
+            } else {
+              // Atualizar para nova tentativa
+              await this.pendingSyncModel.updateOne(
+                { _id: record._id },
+                {
+                  retryCount,
+                  status,
+                  lastRetryAt: new Date(Date.now() - 3 * 60 * 60 * 1000),
+                  errorMessage,
+                },
+              );
+            }
 
-          this.logger.error(
-            `Erro ao sincronizar registro ${record.jti}:`,
-            error,
-          );
+            this.logger.error(`❌ [SYNC] Erro ao sincronizar ${record.jti}: ${errorMessage}`);
+          }
         }
       }
 
@@ -145,15 +162,14 @@ export class SyncService {
    * Envia dados para o QR Manager
    */
   private async sendToQrManager(record: PendingSync): Promise<any> {
+    // Payload correto para o QR Manager (apenas os campos esperados)
     const payload = {
       jti: record.jti,
-      gate: record.gateId,
-      userId: record.userId,
-      accessType: record.accessType,
-      timestamp: record.timestamp,
-      reason: record.reason,
-      jwtPayload: record.jwtPayload,
+      gate: record.gate,
+      at: record.timestamp.toISOString(), // Campo correto esperado pelo QR Manager
     };
+
+    this.logger.log(`📤 [SYNC] Enviando para QR Manager: ${JSON.stringify(payload)}`);
 
     const response = await axios.post(
       `${env.ACCESS_QR_MANAGER}/qrcodes/consume`,
@@ -168,22 +184,23 @@ export class SyncService {
   }
 
   /**
-   * Cria log de acesso após sincronização bem-sucedida
+   * Cria log de acesso após sincronização
    */
   private async createAccessLog(
     record: PendingSync,
     qrManagerResponse: any,
+    errorReason?: string,
   ): Promise<void> {
     const accessLog = new this.accessLogModel({
       jti: record.jti,
-      gateId: record.gateId,
+      gate: record.gate,
       userId: record.userId,
-      accessType: record.accessType,
+      accessType: errorReason ? 'denied' : record.accessType,
       accessMethod: 'qr_manager',
       timestamp: record.timestamp,
-      reason: record.reason,
+      reason: errorReason || record.reason,
       synced: true,
-      syncTimestamp: new Date(),
+      syncTimestamp: new Date(Date.now() - 3 * 60 * 60 * 1000),
       jwtPayload: record.jwtPayload,
       qrManagerResponse,
     });
@@ -194,8 +211,8 @@ export class SyncService {
   /**
    * Obtém estatísticas de sincronização
    */
-  async getSyncStatus(gateId?: string): Promise<any> {
-    const query = gateId ? { gateId } : {};
+  async getSyncStatus(gate?: string): Promise<any> {
+    const query = gate ? { gate } : {};
 
     const [pending, synced, failed] = await Promise.all([
       this.pendingSyncModel.countDocuments({ ...query, status: 'pending' }),
@@ -220,7 +237,7 @@ export class SyncService {
    * Limpa registros antigos (manutenção)
    */
   async cleanupOldRecords(daysToKeep: number = 30): Promise<void> {
-    const cutoffDate = new Date();
+    const cutoffDate = new Date(Date.now() - 3 * 60 * 60 * 1000);
     cutoffDate.setDate(cutoffDate.getDate() - daysToKeep);
 
     await Promise.all([

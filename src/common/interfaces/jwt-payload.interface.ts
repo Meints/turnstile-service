@@ -1,11 +1,13 @@
 export interface JwtPayload {
-  iss: string; // issuer
-  kid: string; // key id
-  jti: string; // JWT ID
-  sub: string; // subject (visitName)
-  iat: number; // issued at
-  nbf: number; // not before (windowStart)
-  exp: number; // expires (windowEnd)
-  gate: string; // allowed gate
+  sub: string; // visitId
+  name: string; // visitName
+  gate: string; // allowed building
   max: number; // max uses
+  jti: string; // JWT ID
+  nbf: number; // not before
+  exp: number; // expires
+  iss: string; // issuer
+  iat: number; // issued at
+  kid?: string; // key id (optional)
+  userId?: string; // optional user id
 }

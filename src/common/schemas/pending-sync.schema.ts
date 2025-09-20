@@ -9,7 +9,7 @@ export class PendingSync {
   jti: string; // JWT ID
 
   @Prop({ required: true })
-  gateId: string; // ID do portão/catraca
+  gate: string; // ID do portão/catraca
 
   @Prop({ required: true })
   userId: string; // ID do usuário
@@ -44,4 +44,4 @@ export const PendingSyncSchema = SchemaFactory.createForClass(PendingSync);
 // Índices para performance
 PendingSyncSchema.index({ status: 1, lastRetryAt: 1 });
 PendingSyncSchema.index({ jti: 1 });
-PendingSyncSchema.index({ gateId: 1, timestamp: -1 });
+PendingSyncSchema.index({ gate: 1, timestamp: -1 });

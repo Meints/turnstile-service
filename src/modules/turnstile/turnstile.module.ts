@@ -4,6 +4,8 @@ import { TurnstileController } from './turnstile.controller';
 import { TurnstileService } from './turnstile.service';
 import { SyncService } from './sync.service';
 import { TurnstileConfigService } from './turnstile-config.service';
+import { TurnstileCrudController } from './turnstile-crud.controller';
+import { TurnstileCrudService } from './turnstile-crud.service';
 import {
   AccessLog,
   AccessLogSchema,
@@ -16,6 +18,14 @@ import {
   TurnstileConfig,
   TurnstileConfigSchema,
 } from 'src/common/schemas/turnstile-config.schema';
+import {
+  Turnstile,
+  TurnstileSchema,
+} from 'src/common/schemas/turnstile.schema';
+import {
+  QrCache,
+  QrCacheSchema,
+} from 'src/common/schemas/qr-cache.schema';
 
 @Module({
   imports: [
@@ -23,10 +33,12 @@ import {
       { name: AccessLog.name, schema: AccessLogSchema },
       { name: PendingSync.name, schema: PendingSyncSchema },
       { name: TurnstileConfig.name, schema: TurnstileConfigSchema },
+      { name: Turnstile.name, schema: TurnstileSchema },
+      { name: QrCache.name, schema: QrCacheSchema },
     ]),
   ],
-  controllers: [TurnstileController],
-  providers: [TurnstileService, SyncService, TurnstileConfigService],
-  exports: [TurnstileService, SyncService, TurnstileConfigService],
+  controllers: [TurnstileController, TurnstileCrudController],
+  providers: [TurnstileService, SyncService, TurnstileConfigService, TurnstileCrudService],
+  exports: [TurnstileService, SyncService, TurnstileConfigService, TurnstileCrudService],
 })
 export class TurnstileModule {}

@@ -2,9 +2,9 @@ export class AccessResponseDto {
   success: boolean;
   message: string;
   accessType: 'granted' | 'denied';
-  accessMethod: 'qr_manager' | 'jwt_fallback';
+  accessMethod: 'qr_manager' | 'offline_validation';
   timestamp: string;
-  gateId: string;
+  gate: string;
   userId?: string;
   reason?: string;
   synced: boolean;
@@ -14,10 +14,10 @@ export class AccessResponseDto {
 export class AccessHistoryDto {
   id: string;
   jti: string;
-  gateId: string;
+  gate: string;
   userId: string;
   accessType: 'granted' | 'denied';
-  accessMethod: 'qr_manager' | 'jwt_fallback';
+  accessMethod: 'qr_manager' | 'offline_validation';
   timestamp: string;
   reason?: string;
   synced: boolean;

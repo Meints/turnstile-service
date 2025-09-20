@@ -9,7 +9,7 @@ export class AccessLog {
   jti: string; // JWT ID
 
   @Prop({ required: true })
-  gateId: string; // ID do portão/catraca
+  gate: string; // ID do portão/catraca
 
   @Prop({ required: true })
   userId: string; // ID do usuário (extraído do JWT)
@@ -42,7 +42,7 @@ export class AccessLog {
 export const AccessLogSchema = SchemaFactory.createForClass(AccessLog);
 
 // Índices para performance
-AccessLogSchema.index({ gateId: 1, timestamp: -1 });
+AccessLogSchema.index({ gate: 1, timestamp: -1 });
 AccessLogSchema.index({ jti: 1 });
 AccessLogSchema.index({ synced: 1 });
 AccessLogSchema.index({ userId: 1, timestamp: -1 });

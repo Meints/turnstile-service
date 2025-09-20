@@ -9,21 +9,14 @@ async function initializeTurnstileConfig() {
   try {
     // Configuração padrão para o portão principal
     const defaultConfig = {
-      gateId: 'GATE-001',
+      gate: 'GATE-001',
       name: 'Portão Principal',
-      location: 'Entrada Principal',
       isActive: true,
-      maintenanceMode: false,
       jwtValidationTimeout: 300,
       maxRetryAttempts: 5,
       retryInterval: 60000,
       dataRetentionDays: 30,
       allowedGates: ['GATE-001'],
-      workingHours: {
-        start: '06:00',
-        end: '22:00',
-        days: [1, 2, 3, 4, 5, 6, 0], // Segunda a domingo
-      },
       totalAccesses: 0,
       failedSyncs: 0,
     };
