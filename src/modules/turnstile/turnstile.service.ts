@@ -89,7 +89,7 @@ export class TurnstileService {
       // 2. Decodificar JWT
       const decoded = this.decodeJWT(jwtToken);
       if (!decoded) {
-        throw new InvalidQrCodeException('Token JWT inválido ou malformado');
+        throw new InvalidQrCodeException('QR Code inválido ou malformado');
       }
 
       // 3. Validar JWT (verificações básicas)
