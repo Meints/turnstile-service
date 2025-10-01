@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  turnstile:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: turnstile-dev
+    restart: unless-stopped
+    ports:
+      - "8001:8001"
+    volumes:
+      - .:/app
+      - /app/node_modules
+    environment:
+      - PORT=8001
+      - MONGODB_URI=${MONGODB_URI}
+      - ACCESS_QR_MANAGER=${ACCESS_QR_MANAGER}
+      - JWT_PUBLIC_KEY_PEM=${JWT_PUBLIC_KEY_PEM}
