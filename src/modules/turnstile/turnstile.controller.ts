@@ -143,17 +143,4 @@ export class TurnstileController {
       synced: result.syncedCount || 0
     };
   }
-
-  /**
-   * Limpar registros pendentes antigos
-   */
-  @Post('cleanup')
-  async cleanup(): Promise<{ message: string; cleaned: number }> {
-    this.logger.log('🧽 [TURNSTILE] Limpando registros antigos...');
-    // Implementar limpeza se necessário
-    return {
-      message: 'Limpeza concluída',
-      cleaned: 0
-    };
-  }
 }
